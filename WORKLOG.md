@@ -1,5 +1,15 @@
 # Worklog
 
+## 2026-10-23 - MCP SDK 1.32.1 and transitive security fixes
+
+**What changed**: `0f54ebc` refreshed the lockfile to `@modelcontextprotocol/sdk` 1.32.1 and vitest 4.1.12. That clears `proxy-addr` (critical IP spoofing), the MCP SDK session-binding, OAuth redirect and request-size advisories, the `follow-redirects` credential leaks, and the `hono`, `ip-address`, `source-map-js`, vite and vitest advisories.
+
+**Verification**: Build and 87 tests pass, and `npm audit` reports 0 vulnerabilities. No package was published.
+
+**Left off at**: Contributor PRs #2 and #5 remain open and untouched.
+
+---
+
 ## 2026-10-07 - GitHub Issue Review Closeout
 
 **What changed**: Reviewed all 2 open issues against source at `7bab82594f36` and their complete issue history. No issue qualified for closure.
