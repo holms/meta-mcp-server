@@ -1,8 +1,3 @@
-export enum ResponseFormat {
-  MARKDOWN = "markdown",
-  JSON = "json",
-}
-
 export interface MetaPage {
   id: string;
   name: string;
@@ -202,15 +197,6 @@ export interface InsightData {
   ad_name?: string;
   account_id?: string;
   account_name?: string;
-}
-
-export interface PageInsight {
-  name: string;
-  period: string;
-  values: Array<{ value: number | Record<string, number>; end_time: string }>;
-  title: string;
-  description: string;
-  id: string;
 }
 
 export interface ThreadsProfile {
