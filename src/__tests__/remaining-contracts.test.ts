@@ -6,6 +6,7 @@ import { registerAdsTools } from "../tools/ads.js";
 import { registerPageTools } from "../tools/pages.js";
 import { registerInstagramTools } from "../tools/instagram.js";
 import { registerUtilityTools } from "../tools/utility.js";
+import { registerChartTools } from "../tools/charts.js";
 
 describe("remaining documented contracts", () => {
   const tools = new Map<string, any>();
@@ -14,7 +15,7 @@ describe("remaining documented contracts", () => {
     tools.clear(); get.mockReset().mockResolvedValue({ data: [] }); getWithToken.mockReset(); cachePageToken.mockReset();
     const server = { registerTool(name: string, config: any, run: any) { tools.set(name, { config, run }); } } as unknown as McpServer;
     const client = { get, getWithToken, cachePageToken, requirePageToken: () => "page-token" } as unknown as MetaApiClient;
-    registerAdsTools(server, client); registerPageTools(server, client); registerInstagramTools(server, client); registerUtilityTools(server, client);
+    registerAdsTools(server, client); registerPageTools(server, client); registerInstagramTools(server, client); registerUtilityTools(server, client); registerChartTools(server);
   });
   const call = (name: string, args: any) => { const t = tools.get(name); return t.run(t.config.inputSchema.parse(args)); };
   it("requests supported saved audience bounds and renders them", async () => {
@@ -74,6 +75,17 @@ describe("remaining documented contracts", () => {
       expect(result.content[0].text).not.toContain("page-secret");
     }
     expect(cachePageToken).toHaveBeenCalledWith("p", "page-secret");
+  });
+  it.each(["meta_generate_chart", "meta_generate_comparison_chart"])("%s refuses a non-PNG output path before fetching", async name => {
+    const fetch = vi.spyOn(axios, "get");
+    const args = name === "meta_generate_chart"
+      ? { title: "t", labels: ["a"], datasets: [{ label: "x", data: [1] }] }
+      : { title: "t", metrics: ["a"], group_a: { label: "A", values: [1] }, group_b: { label: "B", values: [2] } };
+    const result = await call(name, { ...args, output_path: "/tmp/not-a-chart.txt" });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain(".png");
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockRestore();
   });
 });
 

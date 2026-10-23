@@ -7,6 +7,15 @@ import { join } from "path";
 
 const QUICKCHART_BASE = "https://quickchart.io/chart";
 
+// Charts are PNGs, so refuse any other destination: a path chosen from
+// untrusted page content must not be able to overwrite a non-image file.
+function resolveChartPath(outputPath: string): string {
+  if (!/\.png$/i.test(outputPath)) {
+    throw new Error("output_path must end in .png.");
+  }
+  return outputPath.startsWith("/") ? outputPath : join(process.cwd(), outputPath);
+}
+
 function buildChartUrl(config: object, width: number, height: number): string {
   const params = new URLSearchParams({
     c: JSON.stringify(config),
@@ -121,8 +130,8 @@ Example datasets for ad performance:
         const url = buildChartUrl(chartConfig, width, height);
 
         if (output_path) {
+          const resolvedPath = resolveChartPath(output_path);
           const response = await axios.get(url, { responseType: "arraybuffer", timeout: 30000 });
-          const resolvedPath = output_path.startsWith("/") ? output_path : join(process.cwd(), output_path);
           writeFileSync(resolvedPath, response.data);
 
           if (response_format === "json") {
@@ -230,8 +239,8 @@ Example — comparing two weeks:
         const url = buildChartUrl(chartConfig, width, height);
 
         if (output_path) {
+          const resolvedPath = resolveChartPath(output_path);
           const response = await axios.get(url, { responseType: "arraybuffer", timeout: 30000 });
-          const resolvedPath = output_path.startsWith("/") ? output_path : join(process.cwd(), output_path);
           writeFileSync(resolvedPath, response.data);
 
           if (response_format === "json") {
