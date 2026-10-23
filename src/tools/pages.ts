@@ -5,6 +5,11 @@ import { errorResult, truncate, truncateField, formatNumber, formatDate, buildPa
 import { PAGE_FIELDS, POST_FIELDS } from "../constants.js";
 import { MetaPage, MetaPost, MetaPaginatedResponse } from "../types.js";
 
+// Page access tokens stay in the client's cache; they never belong in tool output.
+function withoutPageToken({ access_token: _token, ...page }: MetaPage): Omit<MetaPage, "access_token"> {
+  return page;
+}
+
 export function registerPageTools(server: McpServer, client: MetaApiClient): void {
   // ─── List Pages ───────────────────────────────────────────────────────────
   server.registerTool(
@@ -55,7 +60,7 @@ Tip: The page tokens are cached automatically. You do not need to manage them ma
 
         if (response_format === "json") {
           return {
-            content: [{ type: "text", text: JSON.stringify(data.data, null, 2) }],
+            content: [{ type: "text", text: JSON.stringify(data.data.map(withoutPageToken), null, 2) }],
           };
         }
 
@@ -117,7 +122,7 @@ Returns page details including name, category, description, follower counts, and
         }
 
         if (response_format === "json") {
-          return { content: [{ type: "text", text: JSON.stringify(page, null, 2) }] };
+          return { content: [{ type: "text", text: JSON.stringify(withoutPageToken(page), null, 2) }] };
         }
 
         const lines = [

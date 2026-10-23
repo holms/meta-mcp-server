@@ -9,11 +9,11 @@ import { registerUtilityTools } from "../tools/utility.js";
 
 describe("remaining documented contracts", () => {
   const tools = new Map<string, any>();
-  const get = vi.fn(); const getWithToken = vi.fn();
+  const get = vi.fn(); const getWithToken = vi.fn(); const cachePageToken = vi.fn();
   beforeEach(() => {
-    tools.clear(); get.mockReset().mockResolvedValue({ data: [] }); getWithToken.mockReset();
+    tools.clear(); get.mockReset().mockResolvedValue({ data: [] }); getWithToken.mockReset(); cachePageToken.mockReset();
     const server = { registerTool(name: string, config: any, run: any) { tools.set(name, { config, run }); } } as unknown as McpServer;
-    const client = { get, getWithToken, requirePageToken: () => "page-token" } as unknown as MetaApiClient;
+    const client = { get, getWithToken, cachePageToken, requirePageToken: () => "page-token" } as unknown as MetaApiClient;
     registerAdsTools(server, client); registerPageTools(server, client); registerInstagramTools(server, client); registerUtilityTools(server, client);
   });
   const call = (name: string, args: any) => { const t = tools.get(name); return t.run(t.config.inputSchema.parse(args)); };
@@ -66,6 +66,15 @@ describe("remaining documented contracts", () => {
     expect(JSON.parse(result.content[0].text)).toEqual({ data: [{ id: "yes", is_eligible_for_promotion: true }], paging: { cursors: { after: "next" }, next: "url" } });
   });
   it("does not advertise retired Places search", () => { expect(tools.has("meta_search_places")).toBe(false); });
+  it("caches page access tokens without returning them in JSON output", async () => {
+    get.mockResolvedValueOnce({ data: [{ id: "p", name: "Page", access_token: "page-secret" }] }).mockResolvedValueOnce({ id: "p", name: "Page", access_token: "page-secret" });
+    for (const [name, args] of [["meta_list_pages", {}], ["meta_get_page", { page_id: "p" }]] as const) {
+      const result = await call(name, { ...args, response_format: "json" });
+      expect(result.content[0].text).toContain('"id": "p"');
+      expect(result.content[0].text).not.toContain("page-secret");
+    }
+    expect(cachePageToken).toHaveBeenCalledWith("p", "page-secret");
+  });
 });
 
 function tokenError(code = 190, error_subcode = 2069032) {
