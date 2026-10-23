@@ -2,11 +2,11 @@
 
 ## 2026-10-23 - Security review
 
-**What changed**: `7b79005` stops `meta_list_pages` and `meta_get_page` from returning each Page's `access_token` when `response_format` is json; the tokens are still cached for the Page tools. `46b93b6` requires the chart tools' `output_path` to end in `.png`, checked before the chart is fetched, so a path taken from untrusted Page content cannot overwrite an arbitrary file. `71b3438` removes the unused annotation presets, the `ResponseFormat` enum, and the `PageInsight` type.
+**What changed**: `7b79005` stops `meta_list_pages` and `meta_get_page` from returning each Page's `access_token` when `response_format` is json; the tokens are still cached for the Page tools. `46b93b6` requires the chart tools' `output_path` to end in `.png`, checked before the chart is fetched, so a path taken from untrusted Page content cannot overwrite an arbitrary file. `71b3438` removes the unused annotation presets, the `ResponseFormat` enum, and the `PageInsight` type. `537c6b8` moves zod from 3.25.76 to 4.6.7 for GHSA-mrhx-c7xc-m3w5, which has no 3.x fix; the nine one-argument `z.record` schemas now name their string keys. `80178e9` moves `body-parser` to 2.4.0 for GHSA-27r3-jxmh-p828.
 
-**Verification**: `npm run build` and 90 tests pass (three new). The integration tests ran with a stub `op` on `PATH` so the 1Password fallback stayed silent.
+**Verification**: `npm run build` and 90 tests pass (three new), and `npm audit --omit=dev` reports 0 vulnerabilities. The integration tests ran with a stub `op` on `PATH` so the 1Password fallback stayed silent. A `tools/list` dump of all 199 tools matched the zod 3 build except `meta_send_instagram_media_message`, which zod 3 had listed with no properties and zod 4 lists correctly.
 
-**Left off at**: Not published. `npm audit --omit=dev` reports zod GHSA-mrhx-c7xc-m3w5 (high, fixed only in 4.6.6), which needs a zod 3 to 4 migration. Risk is low for a local stdio server whose only input is its own client.
+**Left off at**: Not published.
 
 ---
 
