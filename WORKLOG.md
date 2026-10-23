@@ -1,5 +1,15 @@
 # Worklog
 
+## 2026-10-23 - Security review
+
+**What changed**: `7b79005` stops `meta_list_pages` and `meta_get_page` from returning each Page's `access_token` when `response_format` is json; the tokens are still cached for the Page tools. `46b93b6` requires the chart tools' `output_path` to end in `.png`, checked before the chart is fetched, so a path taken from untrusted Page content cannot overwrite an arbitrary file. `71b3438` removes the unused annotation presets, the `ResponseFormat` enum, and the `PageInsight` type.
+
+**Verification**: `npm run build` and 90 tests pass (three new). The integration tests ran with a stub `op` on `PATH` so the 1Password fallback stayed silent.
+
+**Left off at**: Not published. `npm audit --omit=dev` reports zod GHSA-mrhx-c7xc-m3w5 (high, fixed only in 4.6.6), which needs a zod 3 to 4 migration. Risk is low for a local stdio server whose only input is its own client.
+
+---
+
 ## 2026-10-23 - MCP SDK 1.32.1 and transitive security fixes
 
 **What changed**: `0f54ebc` refreshed the lockfile to `@modelcontextprotocol/sdk` 1.32.1 and vitest 4.1.12. That clears `proxy-addr` (critical IP spoofing), the MCP SDK session-binding, OAuth redirect and request-size advisories, the `follow-redirects` credential leaks, and the `hono`, `ip-address`, `source-map-js`, vite and vitest advisories.
