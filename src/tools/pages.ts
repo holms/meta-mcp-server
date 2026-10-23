@@ -829,7 +829,7 @@ Requires pages_manage_metadata permission.`,
           website: z.string().url().optional(),
           phone: z.string().optional(),
           emails: z.array(z.string().email()).optional(),
-          hours: z.record(z.string()).optional().describe("Business hours key-value pairs"),
+          hours: z.record(z.string(), z.string()).optional().describe("Business hours key-value pairs"),
           category: z.string().optional().describe("Page category"),
           username: z.string().optional().describe("Page vanity URL/username"),
           contact_address: z.object({
