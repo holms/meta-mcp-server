@@ -491,23 +491,22 @@ Scheduling: Pass scheduled_publish_time (Unix timestamp, 10 min – 75 days in f
         }
         const containers = (results as PromiseFulfilledResult<{ id: string; type: string }>[]).map((r) => r.value);
 
-        // Step 1b: Poll all video containers in parallel
-        const videoContainers = containers.filter((c) => c.type === "VIDEO");
-        if (videoContainers.length) {
-          const statuses = await Promise.all(
-            videoContainers.map((c) => client.pollContainerStatus(c.id, "instagram"))
-          );
-          const failed = videoContainers
-            .map((c, i) => ({ ...c, status: statuses[i] }))
-            .filter((c) => c.status !== "FINISHED");
-          if (failed.length) {
-            return {
-              content: [{
-                type: "text",
-                text: `Video container(s) ${failed.map((c) => `\`${c.id}\` (${c.status})`).join(", ")} did not finish processing. Cannot assemble carousel until all videos are FINISHED.`,
-              }],
-            };
-          }
+        // Step 1b: Poll every item container (image and video) until it settles.
+        // Image containers are not ready the moment their id returns either;
+        // assembling the parent early fails with 9007/2207027 "Media ID is not available".
+        const statuses = await Promise.all(
+          containers.map((c) => client.pollContainerStatus(c.id, "instagram"))
+        );
+        const failed = containers
+          .map((c, i) => ({ ...c, status: statuses[i] }))
+          .filter((c) => c.status !== "FINISHED");
+        if (failed.length) {
+          return {
+            content: [{
+              type: "text",
+              text: `Item container(s) ${failed.map((c) => `\`${c.id}\` (${c.status})`).join(", ")} did not finish processing. Cannot assemble carousel until all items are FINISHED.`,
+            }],
+          };
         }
         const containerIds = containers.map((c) => c.id);
 
