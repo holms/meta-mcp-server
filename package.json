@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
+    "@sentry/node": "11.9.0",
     "axios": "^1.7.9",
     "zod": "^4.6.7"
   },

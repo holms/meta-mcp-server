@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
 import { z } from "zod";
 import { CHARACTER_LIMIT } from "../constants.js";
+import { reportToolError } from "./tool-errors.js";
 
 // Shared Zod schema for response_format parameter — used by all tools
 export const ResponseFormatSchema = z
@@ -9,6 +10,7 @@ export const ResponseFormatSchema = z
   .describe("Output format: 'markdown' for human-readable or 'json' for machine-readable");
 
 export function errorResult(error: unknown): { content: Array<{ type: "text"; text: string }>; isError: true } {
+  reportToolError(error);
   return {
     content: [{ type: "text" as const, text: handleApiError(error) }],
     isError: true,

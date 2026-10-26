@@ -513,6 +513,7 @@ Generate visual charts from data for reports and presentations.
 |----------|----------|---------|-------------|
 | `META_ACCESS_TOKEN` | Yes | None | Long-lived Meta Graph API token for Facebook Pages, Instagram, Ads Manager, Commerce, Conversions API, Audiences, Insights, and utility tools. |
 | `THREADS_ACCESS_TOKEN` | No | None | Threads API token. Required only for Threads publishing, replies, and insights tools. |
+| `SENTRY_DSN` | No | None | Turns on optional error reporting to that Sentry project. See [Error reporting](#error-reporting). |
 
 ### 1. Create a Meta App
 
@@ -533,6 +534,12 @@ fb_exchange_token=SHORT_LIVED_TOKEN"
 > **For permanent access**, create a System User token in Business Manager → System Users.
 
 **Threads** uses a separate token via `graph.threads.net` OAuth — see [Threads API docs](https://developers.facebook.com/docs/threads/get-started).
+
+### Error reporting
+
+Error reporting is off by default. If you set `SENTRY_DSN`, unexpected tool failures (code errors, Graph API 5xx responses, network failures, and timeouts) and fatal errors are sent to that Sentry project. Without it, `@sentry/node` is never loaded. Reporting needs Node 20.19 or newer and is skipped quietly on older runtimes.
+
+Each report carries only the error type, a fixed message, stack frames with package-relative paths, the tool name, and the HTTP status of a failed Graph API response. Access tokens, post and message content, comments, ad and audience data, customer data, tool arguments, error messages, Graph API responses, breadcrumbs, user data, and request data are removed before anything is sent. Missing tokens and Graph API 4xx answers are not reported.
 
 ### 1Password Integration
 

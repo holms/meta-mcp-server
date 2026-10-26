@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { errorResult, ResponseFormatSchema } from "../services/utils.js";
+import { MetaUserError } from "../services/api.js";
 import axios from "axios";
 import { writeFileSync } from "fs";
 import { join } from "path";
@@ -11,7 +12,7 @@ const QUICKCHART_BASE = "https://quickchart.io/chart";
 // untrusted page content must not be able to overwrite a non-image file.
 function resolveChartPath(outputPath: string): string {
   if (!/\.png$/i.test(outputPath)) {
-    throw new Error("output_path must end in .png.");
+    throw new MetaUserError("output_path must end in .png.");
   }
   return outputPath.startsWith("/") ? outputPath : join(process.cwd(), outputPath);
 }

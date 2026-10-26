@@ -1,6 +1,14 @@
 import axios, { AxiosError } from "axios";
 import { GRAPH_API_BASE, THREADS_API_BASE } from "../constants.js";
 
+/** Thrown for problems the caller must fix, such as a missing token or page grant. */
+export class MetaUserError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MetaUserError";
+  }
+}
+
 export class MetaApiClient {
   private readonly userToken: string;
   private readonly threadsToken: string | undefined;
@@ -14,7 +22,7 @@ export class MetaApiClient {
 
   requireUserToken(): void {
     if (!this.userToken) {
-      throw new Error(
+      throw new MetaUserError(
         "META_ACCESS_TOKEN is not configured. " +
           "Add it to your MCP server config under env: { \"META_ACCESS_TOKEN\": \"your_token\" }. " +
           "Get a token from https://developers.facebook.com/tools/explorer/"
@@ -83,7 +91,7 @@ export class MetaApiClient {
       seen.add(cursor);
       after = cursor;
     }
-    throw new Error(`Could not refresh access for Page ${pageId}. Call meta_list_pages to verify the current Page grant.`);
+    throw new MetaUserError(`Could not refresh access for Page ${pageId}. Call meta_list_pages to verify the current Page grant.`);
   }
 
   async post<T>(
@@ -134,7 +142,7 @@ export class MetaApiClient {
   requirePageToken(pageId: string): string {
     const token = this.pageTokenCache.get(pageId);
     if (!token) {
-      throw new Error(
+      throw new MetaUserError(
         `No access token cached for page ${pageId}. ` +
           `Call meta_list_pages first to load page tokens, then use the page ID from those results.`
       );
@@ -153,7 +161,7 @@ export class MetaApiClient {
   // Threads API methods (different base URL)
   requireThreadsToken(): string {
     if (!this.threadsToken) {
-      throw new Error(
+      throw new MetaUserError(
         "No THREADS_ACCESS_TOKEN configured. " +
           "Set it in your MCP config env to use Threads tools."
       );
