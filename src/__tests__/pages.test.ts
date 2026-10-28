@@ -68,3 +68,53 @@ describe("Facebook Page comment tools", () => {
     expect(JSON.parse(result.content[0].text)).toEqual({ id: "comment-789" });
   });
 });
+
+describe("Facebook Page cover photo contract", () => {
+  function coverTool() {
+    const registrations: RegisteredTool[] = [];
+    const post = vi.fn();
+    const server = {
+      registerTool(name: string, _config: unknown, callback: RegisteredTool["callback"]) {
+        registrations.push({ name, callback });
+      },
+    } as unknown as McpServer;
+    const client = {
+      requirePageToken: vi.fn().mockReturnValue("page-token"),
+      post,
+    } as unknown as MetaApiClient;
+    registerPageTools(server, client);
+    return { post, callback: registrations.find(({ name }) => name === "meta_update_page_cover")!.callback };
+  }
+
+  it("sends an existing photo ID as scalar cover with top-level options", async () => {
+    const { post, callback } = coverTool();
+    post.mockResolvedValue({ success: true });
+    const result = await callback({ page_id: "123", photo_id: "456", offset_y: 25, no_feed_story: false, response_format: "json" });
+    expect(post).toHaveBeenCalledExactlyOnceWith("/123", { cover: "456", offset_y: 25, no_feed_story: false }, "page-token");
+    expect(JSON.parse(result.content[0].text)).toEqual({ success: true });
+  });
+
+  it("uploads a URL as an unpublished photo before selecting its ID", async () => {
+    const { post, callback } = coverTool();
+    post.mockResolvedValueOnce({ id: "789" }).mockResolvedValueOnce({ success: true });
+    await callback({ page_id: "123", cover_url: "https://example.com/cover.jpg", response_format: "markdown" });
+    expect(post).toHaveBeenNthCalledWith(1, "/123/photos", { url: "https://example.com/cover.jpg", published: false }, "page-token");
+    expect(post).toHaveBeenNthCalledWith(2, "/123", { cover: "789" }, "page-token");
+    expect(post).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops when the unpublished photo upload fails", async () => {
+    const { post, callback } = coverTool();
+    post.mockRejectedValue(new Error("Upload failed"));
+    const result = await callback({ page_id: "123", cover_url: "https://example.com/cover.jpg", response_format: "json" });
+    expect(result.isError).toBe(true);
+    expect(post).toHaveBeenCalledExactlyOnceWith("/123/photos", { url: "https://example.com/cover.jpg", published: false }, "page-token");
+  });
+
+  it("rejects missing cover input without making an API request", async () => {
+    const { post, callback } = coverTool();
+    const result = await callback({ page_id: "123", response_format: "json" });
+    expect(result.isError).toBe(true);
+    expect(post).not.toHaveBeenCalled();
+  });
+});

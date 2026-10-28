@@ -2401,24 +2401,35 @@ Provide either cover_url or photo_id. Requires pages_manage_metadata permission.
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
-        idempotentHint: true,
+        idempotentHint: false,
         openWorldHint: false,
       },
     },
     async ({ page_id, cover_url, photo_id, offset_y, no_feed_story, response_format }) => {
       try {
         const pageToken = client.requirePageToken(page_id);
-        const fields: Record<string, unknown> = {};
-        if (cover_url) fields.source = cover_url;
-        if (photo_id) fields.photo = photo_id;
-        if (offset_y !== undefined) fields.offset_y = offset_y;
-        if (no_feed_story !== undefined) fields.no_feed_story = no_feed_story;
 
         if (!cover_url && !photo_id) {
           return { content: [{ type: "text", text: "Error: Provide either cover_url or photo_id." }], isError: true };
         }
 
-        const result = await client.post<{ id?: string }>(`/${page_id}`, { cover: fields }, pageToken);
+        // The `cover` field only accepts a photo ID. For cover_url, upload
+        // the image as an unpublished Page photo first and use its ID.
+        let coverPhotoId = photo_id;
+        if (!coverPhotoId) {
+          const upload = await client.post<{ id: string }>(
+            `/${page_id}/photos`,
+            { url: cover_url, published: false },
+            pageToken
+          );
+          coverPhotoId = upload.id;
+        }
+
+        const fields: Record<string, unknown> = { cover: coverPhotoId };
+        if (offset_y !== undefined) fields.offset_y = offset_y;
+        if (no_feed_story !== undefined) fields.no_feed_story = no_feed_story;
+
+        const result = await client.post<{ id?: string }>(`/${page_id}`, fields, pageToken);
 
         if (response_format === "json") {
           return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };

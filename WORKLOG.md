@@ -1,5 +1,17 @@
 # Worklog
 
+## 2026-10-28 - Integrate the completed Page contributions
+
+**What changed**: Integrated the top-level Page comment contribution from PR #2 and the cover-photo upload flow from PR #5, retaining both contributors' original commits and the current security fixes. The server now registers 200 tools. The cover update sends the photo ID as the scalar `cover` parameter, with `offset_y` and `no_feed_story` at the top level, matching Meta's [v21 Page reference](https://developers.facebook.com/docs/graph-api/reference/v21.0/page/). URL input uploads an unpublished Page photo first. The tool no longer advertises idempotence because that upload creates a photo.
+
+**Decisions made**: The submitted cover patch nested `photo_id` inside `cover`, which disagreed with the documented contract. Corrected the request while retaining its upload flow. Resolved the comment branch's conflicts against the current 199-tool base, so its one addition produces 200 tools. Preserved both contributor-owned remote branches.
+
+**Verification**: `npm run build` and 37 tests covering Page handlers, the MCP entry point and the existing contract regressions passed. Three new cover assertions failed against the previous implementation and pass with the fix. Tests used a failing `op` stub and an empty Sentry DSN; the Page requests were mocked, so live Meta acceptance remains unverified. No Page was changed by verification.
+
+**Left off at**: Source verification is complete. Package version remains 2.0.2; this integration does not itself establish a new npm release or an installed-server update. Earlier release and operational questions remain below.
+
+---
+
 ## 2026-10-23 - Security review
 
 **What changed**: `7b79005` stops `meta_list_pages` and `meta_get_page` from returning each Page's `access_token` when `response_format` is json; the tokens are still cached for the Page tools. `46b93b6` requires the chart tools' `output_path` to end in `.png`, checked before the chart is fetched, so a path taken from untrusted Page content cannot overwrite an arbitrary file. `71b3438` removes the unused annotation presets, the `ResponseFormat` enum, and the `PageInsight` type. `537c6b8` moves zod from 3.25.76 to 4.6.7 for GHSA-mrhx-c7xc-m3w5, which has no 3.x fix; the nine one-argument `z.record` schemas now name their string keys. `80178e9` moves `body-parser` to 2.4.0 for GHSA-27r3-jxmh-p828.
