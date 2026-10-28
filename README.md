@@ -47,6 +47,8 @@ Requires Node.js 20 or newer.
 
 For Claude Desktop and other MCPB-compatible clients, download the local bundle from the [v2.0.2 release](https://github.com/oliverames/meta-mcp-server/releases/tag/v2.0.2):
 
+That desktop bundle remains on 2.0.2. The npm/source version targets 3.0.0 with the security updates and Node 20 minimum.
+
 [Download `meta-mcp-server-2.0.2.mcpb`](https://github.com/oliverames/meta-mcp-server/releases/download/v2.0.2/meta-mcp-server-2.0.2.mcpb)
 
 The bundle includes the Meta favicon, production runtime dependencies, and setup prompts for Meta and optional Threads access tokens.

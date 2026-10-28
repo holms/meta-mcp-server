@@ -1,5 +1,13 @@
 # Worklog
 
+## 2026-10-28 - Prepare the security update for npm
+
+**What changed**: Prepared package version 3.0.0 so kitchensync's publication stage can deliver the patched dependency, corrected Page tools and credential-isolated tests. The Node 18 to Node 20 minimum change is reflected in the major version. The existing desktop bundle remains a dated 2.0.2 artifact.
+
+**Verification**: Build and package inventory passed. A real MCP initialize/tools-list probe reported version 3.0.0 and 200 tools with credential lookup unavailable in the child environment. Publication and receiving-version verification belong to the final kitchensync phase.
+
+---
+
 ## 2026-10-28 - Isolate integration tests from live credentials
 
 The MCP integration harness now launches the current Node executable with an empty child PATH and blank Meta, Threads and Sentry settings. This prevents the server's 1Password fallback from resolving live tokens during tests, fixing [#8](https://github.com/oliverames/meta-mcp-server/issues/8) without adding a production setting.
