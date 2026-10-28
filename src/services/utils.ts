@@ -1,6 +1,7 @@
 import { AxiosError } from "axios";
 import { z } from "zod";
 import { CHARACTER_LIMIT } from "../constants.js";
+import { reportToolError } from "./tool-errors.js";
 
 // Shared Zod schema for response_format parameter — used by all tools
 export const ResponseFormatSchema = z
@@ -8,29 +9,8 @@ export const ResponseFormatSchema = z
   .default("markdown")
   .describe("Output format: 'markdown' for human-readable or 'json' for machine-readable");
 
-// Shared annotation presets
-export const READ_ONLY_ANNOTATIONS = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: false,
-  openWorldHint: false,
-} as const;
-
-export const DESTRUCTIVE_ANNOTATIONS = {
-  readOnlyHint: false,
-  destructiveHint: true,
-  idempotentHint: false,
-  openWorldHint: false,
-} as const;
-
-export const MUTATING_ANNOTATIONS = {
-  readOnlyHint: false,
-  destructiveHint: false,
-  idempotentHint: false,
-  openWorldHint: false,
-} as const;
-
 export function errorResult(error: unknown): { content: Array<{ type: "text"; text: string }>; isError: true } {
+  reportToolError(error);
   return {
     content: [{ type: "text" as const, text: handleApiError(error) }],
     isError: true,

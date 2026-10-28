@@ -5,6 +5,11 @@ import { errorResult, truncate, truncateField, formatNumber, formatDate, buildPa
 import { PAGE_FIELDS, POST_FIELDS } from "../constants.js";
 import { MetaPage, MetaPost, MetaPaginatedResponse } from "../types.js";
 
+// Page access tokens stay in the client's cache; they never belong in tool output.
+function withoutPageToken({ access_token: _token, ...page }: MetaPage): Omit<MetaPage, "access_token"> {
+  return page;
+}
+
 export function registerPageTools(server: McpServer, client: MetaApiClient): void {
   // ─── List Pages ───────────────────────────────────────────────────────────
   server.registerTool(
@@ -55,7 +60,7 @@ Tip: The page tokens are cached automatically. You do not need to manage them ma
 
         if (response_format === "json") {
           return {
-            content: [{ type: "text", text: JSON.stringify(data.data, null, 2) }],
+            content: [{ type: "text", text: JSON.stringify(data.data.map(withoutPageToken), null, 2) }],
           };
         }
 
@@ -117,7 +122,7 @@ Returns page details including name, category, description, follower counts, and
         }
 
         if (response_format === "json") {
-          return { content: [{ type: "text", text: JSON.stringify(page, null, 2) }] };
+          return { content: [{ type: "text", text: JSON.stringify(withoutPageToken(page), null, 2) }] };
         }
 
         const lines = [
@@ -644,16 +649,8 @@ Requires: meta_list_pages called first.
 
 Args:
   - page_id (string): Facebook Page ID
-  - metrics (string[]): Metrics to retrieve. Full options:
-      Impressions: page_impressions, page_impressions_unique, page_impressions_organic, page_impressions_organic_unique, page_impressions_paid, page_impressions_paid_unique, page_impressions_viral, page_impressions_viral_unique, page_impressions_nonviral, page_impressions_nonviral_unique
-      Post Impressions: page_posts_impressions, page_posts_impressions_unique, page_posts_impressions_organic, page_posts_impressions_organic_unique, page_posts_impressions_paid, page_posts_impressions_paid_unique, page_posts_impressions_viral, page_posts_impressions_viral_unique
-      Engagement: page_engaged_users, page_post_engagements, page_total_actions, page_negative_feedback
-      Reactions: page_actions_post_reactions_total, page_actions_post_reactions_like_total, page_actions_post_reactions_love_total, page_actions_post_reactions_wow_total, page_actions_post_reactions_haha_total, page_actions_post_reactions_sorry_total, page_actions_post_reactions_anger_total
-      Fans: page_fans, page_fan_adds, page_fan_adds_unique, page_fan_adds_by_paid_non_paid_unique, page_fan_removes, page_fan_removes_unique, page_daily_follows, page_daily_follows_unique, page_daily_unfollows_unique
-      Views: page_views_total, page_tab_views_login_top, page_tab_views_login_top_unique, page_tab_views_logout_top
-      Video: page_video_views, page_video_views_unique, page_video_views_paid, page_video_views_organic, page_video_views_autoplayed, page_video_views_click_to_play, page_video_complete_views_30s, page_video_complete_views_30s_unique, page_video_complete_views_30s_paid, page_video_complete_views_30s_organic, page_video_repeat_views, page_video_view_time, page_video_views_10s, page_video_views_10s_unique, page_video_views_10s_paid, page_video_views_10s_organic
-      Content: page_media_view, page_lifetime_engaged_followers_unique
-  - period (string): Aggregation period: 'day', 'week', 'days_28', 'month'
+  - metrics (string[]): Defaults to page_media_view, page_total_media_view_unique, page_actions_post_reactions_total, and page_video_views. Supply other metric names supported by your Graph API version explicitly.
+  - period (string): Defaults to 'day'. Default metrics support 'day'. View metrics also support 'week' and 'days_28'; choose explicit metrics for other periods.
   - since (string, optional): Start date YYYY-MM-DD
   - until (string, optional): End date YYYY-MM-DD
 
@@ -664,17 +661,12 @@ Returns: Time-series data for each metric.`,
           metrics: z
             .array(z.string())
             .default([
-              "page_impressions",
-              "page_impressions_unique",
-              "page_engaged_users",
-              "page_post_engagements",
-              "page_fan_adds_unique",
-              "page_fan_removes_unique",
-              "page_views_total",
+              "page_media_view",
+              "page_total_media_view_unique",
               "page_actions_post_reactions_total",
               "page_video_views",
             ])
-            .describe("Metric names — see description for full list of 70+ available metrics"),
+            .describe("Metric names supported by your Graph API version"),
           period: z
             .enum(["day", "week", "days_28", "month"])
             .default("day")
@@ -747,15 +739,9 @@ Requires: meta_list_pages called first.
 Args:
   - post_id (string): Post ID (e.g., "page_id_post_id")
   - page_id (string): Page ID (for authentication)
-  - metrics (string[]): Metrics to retrieve. Options:
-      Performance: post_impressions, post_impressions_unique, post_impressions_paid, post_impressions_paid_unique, post_impressions_fan, post_impressions_fan_unique, post_impressions_organic, post_impressions_organic_unique, post_impressions_viral, post_impressions_viral_unique
-      Engagement: post_clicks, post_clicks_by_type, post_engaged_users, post_negative_feedback, post_negative_feedback_by_type, post_engaged_fan
-      Reactions: post_reactions_by_type_total, post_reactions_like_total, post_reactions_love_total, post_reactions_wow_total, post_reactions_haha_total, post_reactions_sorry_total, post_reactions_anger_total
-      Media: post_media_view, post_total_media_view_unique
-      Video: post_video_avg_time_watched, post_video_complete_views_organic, post_video_complete_views_paid, post_video_views_organic, post_video_views_paid, post_video_view_time
-      Activity: post_activity_by_action_type, post_activity_by_action_type_unique
+  - metrics (string[]): Defaults to post_media_view, post_total_media_view_unique, and post_reactions_by_type_total. Supply other metric names supported by your Graph API version explicitly.
 
-All post metrics use 'lifetime' period (cumulative from post creation).`,
+The default post metrics use the lifetime period (cumulative from post creation).`,
       inputSchema: z
         .object({
           post_id: z.string().describe("Post ID"),
@@ -763,16 +749,11 @@ All post metrics use 'lifetime' period (cumulative from post creation).`,
           metrics: z
             .array(z.string())
             .default([
-              "post_impressions",
-              "post_impressions_unique",
-              "post_impressions_paid",
-              "post_impressions_organic",
-              "post_engaged_users",
-              "post_clicks",
+              "post_media_view",
+              "post_total_media_view_unique",
               "post_reactions_by_type_total",
-              "post_negative_feedback",
             ])
-            .describe("Metric names — see description for full list"),
+            .describe("Metric names supported by your Graph API version"),
           response_format: ResponseFormatSchema,
         })
         .strict(),
@@ -848,7 +829,7 @@ Requires pages_manage_metadata permission.`,
           website: z.string().url().optional(),
           phone: z.string().optional(),
           emails: z.array(z.string().email()).optional(),
-          hours: z.record(z.string()).optional().describe("Business hours key-value pairs"),
+          hours: z.record(z.string(), z.string()).optional().describe("Business hours key-value pairs"),
           category: z.string().optional().describe("Page category"),
           username: z.string().optional().describe("Page vanity URL/username"),
           contact_address: z.object({
@@ -1421,11 +1402,7 @@ Args:
     "meta_get_page_fan_demographics",
     {
       title: "Get Page Fan Demographics",
-      description: `Gets fan/follower demographic breakdowns for a Facebook Page via insights.
-
-Args:
-  - page_id (string): Facebook Page ID
-  - metric (string): Demographic metric — 'page_fans_city', 'page_fans_country', 'page_fans_gender_age', 'page_fans_locale'`,
+      description: `Reports retirement of legacy Page fan demographic metrics. Meta retired all four accepted selectors. City/country alternatives are page_follows_city/page_follows_country; age/gender and locale have no documented replacement. No Graph API request is sent. Consult current Page Insights documentation for supported replacement metrics and periods.`,
       inputSchema: z
         .object({
           page_id: z.string(),
@@ -1442,38 +1419,10 @@ Args:
         openWorldHint: false,
       },
     },
-    async ({ page_id, metric, response_format }) => {
-      try {
-        const pageToken = client.requirePageToken(page_id);
-        const data = await client.getWithToken<{ data: Array<{
-          name: string;
-          values: Array<{ value: Record<string, number> }>;
-        }> }>(`/${page_id}/insights`, pageToken, {
-          metric,
-          period: "lifetime",
-        });
-
-        if (response_format === "json") {
-          return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
-        }
-
-        const item = data.data?.[0];
-        if (!item?.values?.length) {
-          return { content: [{ type: "text", text: "No demographic data available." }] };
-        }
-
-        const breakdown = item.values[item.values.length - 1].value;
-        const sorted = Object.entries(breakdown).sort((a, b) => b[1] - a[1]);
-        const lines = [`# ${metric.replace(/_/g, " ").replace(/\bpage\b/i, "Page")}`, ""];
-        for (const [key, val] of sorted.slice(0, 30)) {
-          lines.push(`- **${key}**: ${formatNumber(val)}`);
-        }
-        if (sorted.length > 30) lines.push(`\n_...and ${sorted.length - 30} more_`);
-        return { content: [{ type: "text", text: lines.join("\n") }] };
-      } catch (error) {
-        return errorResult(error);
-      }
-    }
+    async ({ metric }) => ({
+      content: [{ type: "text", text: `The ${metric} metric is retired. See https://developers.facebook.com/documentation/pages-api/platforminsights/page/deprecated-metrics/ for replacements. No request was sent; verify a replacement's period before using meta_get_page_insights.` }],
+      isError: true,
+    })
   );
 
   // ─── Get Post Reactions ────────────────────────────────────────────────
@@ -1536,17 +1485,19 @@ Args:
     "meta_update_post",
     {
       title: "Update Facebook Post",
-      description: `Updates an existing Facebook Page post's message text.
+      description: `Updates an existing Facebook Page post's message text and/or pinned state.
 
 Args:
   - post_id (string): Post ID
   - page_id (string): Page ID (for token)
-  - message (string): New message text`,
+  - message (string, optional): New message text
+  - is_pinned (boolean, optional): Pin (true) or unpin (false) the post at the top of the Page`,
       inputSchema: z
         .object({
           post_id: z.string(),
           page_id: z.string(),
-          message: z.string().min(1),
+          message: z.string().min(1).optional(),
+          is_pinned: z.boolean().optional(),
           response_format: ResponseFormatSchema,
         })
         .strict(),
@@ -1557,12 +1508,27 @@ Args:
         openWorldHint: false,
       },
     },
-    async ({ post_id, page_id, message, response_format }) => {
+    async ({ post_id, page_id, message, is_pinned, response_format }) => {
       try {
+        if (message === undefined && is_pinned === undefined) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: "Nothing to update: provide at least one of `message` or `is_pinned`.",
+              },
+            ],
+          };
+        }
+
         const pageToken = client.requirePageToken(page_id);
+        const params: Record<string, string | boolean> = {};
+        if (message !== undefined) params.message = message;
+        if (is_pinned !== undefined) params.is_pinned = is_pinned;
+
         const result = await client.post<{ success: boolean }>(
           `/${post_id}`,
-          { message },
+          params,
           pageToken
         );
 
@@ -2312,7 +2278,7 @@ Call without subscribed_fields to check current subscriptions.`,
     "meta_get_promotable_posts",
     {
       title: "Get Promotable Posts",
-      description: `Gets posts that are eligible for boosting/promotion on a Facebook Page.
+      description: `Reads one Page feed page and returns posts explicitly eligible for promotion. Unknown eligibility is excluded. Limit applies before filtering; use the returned cursor to continue.
 
 Args:
   - page_id (string): Facebook Page ID
@@ -2334,24 +2300,25 @@ Args:
         if (after) params.after = after;
 
         const data = await client.getWithToken<MetaPaginatedResponse<MetaPost & { is_eligible_for_promotion?: boolean }>>(
-          `/${page_id}/promotable_posts`,
+          `/${page_id}/feed`,
           pageToken,
           params
         );
 
-        if (!data.data?.length) {
-          return { content: [{ type: "text", text: "No promotable posts found." }] };
-        }
-
+        const eligible = { ...data, data: (data.data ?? []).filter((post) => post.is_eligible_for_promotion === true) };
         if (response_format === "json") {
-          return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+          return { content: [{ type: "text", text: JSON.stringify(eligible, null, 2) }] };
+        }
+        const next = data.paging?.next ? data.paging.cursors?.after : undefined;
+        if (!eligible.data.length) {
+          return { content: [{ type: "text", text: "No explicitly eligible posts on this feed page." + buildPaginationNote(0, next) }] };
         }
 
-        const lines = [`# Promotable Posts (${data.data.length})`, ""];
-        for (const post of data.data) {
+        const lines = [`# Promotable Posts (${eligible.data.length})`, ""];
+        for (const post of eligible.data) {
           lines.push(`- \`${post.id}\` — ${formatDate(post.created_time)}${post.message ? ` | ${truncateField(post.message, 80)}` : ""}`);
         }
-        return { content: [{ type: "text", text: truncate(lines.join("\n"), "promotable posts") }] };
+        return { content: [{ type: "text", text: truncate(lines.join("\n") + buildPaginationNote(eligible.data.length, next), "promotable posts") }] };
       } catch (error) {
         return errorResult(error);
       }
@@ -2779,14 +2746,14 @@ Ends the broadcast immediately.`,
     "meta_get_page_automated_responses",
     {
       title: "Get Page Automated Messaging Settings",
-      description: `Gets the current automated messaging settings for a Facebook Page.
+      description: `Gets the Facebook Page Messenger profile greeting and ice breakers.
 
 Requires: meta_list_pages called first to load page tokens.
 
 Args:
   - page_id (string): Facebook Page ID
 
-Returns: Instant reply message, away message, greeting text, and ice breakers configuration.`,
+Returns: Messenger profile greeting and ice breakers. Instant and away replies are not exposed by this endpoint.`,
       inputSchema: z
         .object({
           page_id: z.string().describe("Facebook Page ID"),
@@ -2803,8 +2770,8 @@ Returns: Instant reply message, away message, greeting text, and ice breakers co
     async ({ page_id, response_format }) => {
       try {
         const pageToken = client.requirePageToken(page_id);
-        const data = await client.getWithToken<Record<string, unknown>>(`/${page_id}`, pageToken, {
-          fields: "instant_reply_message,greeting,ice_breakers",
+        const data = await client.getWithToken<{ data: Array<Record<string, unknown>> }>(`/${page_id}/messenger_profile`, pageToken, {
+          fields: "greeting,ice_breakers",
         });
 
         if (response_format === "json") {
@@ -2816,26 +2783,18 @@ Returns: Instant reply message, away message, greeting text, and ice breakers co
           "",
         ];
 
-        if (data.instant_reply_message) {
-          lines.push(`## Instant Reply`);
-          lines.push(`- **Message**: ${data.instant_reply_message}`);
-          lines.push("");
-        }
-
-        if (data.greeting && Array.isArray(data.greeting)) {
-          lines.push(`## Greeting`);
-          for (const g of data.greeting as Array<{ locale: string; text: string }>) {
-            lines.push(`- **${g.locale}**: ${g.text}`);
+        for (const profile of data.data ?? []) {
+          if (Array.isArray(profile.greeting)) {
+            lines.push("## Greeting");
+            for (const greeting of profile.greeting as Array<{ locale: string; text: string }>) {
+              lines.push(`- **${greeting.locale}**: ${greeting.text}`);
+            }
+            lines.push("");
           }
-          lines.push("");
-        }
-
-        if (data.ice_breakers && Array.isArray(data.ice_breakers)) {
-          lines.push(`## Ice Breakers`);
-          for (const ib of data.ice_breakers as Array<{ question: string; payload?: string }>) {
-            lines.push(`- ${ib.question}`);
+          if (Array.isArray(profile.ice_breakers)) {
+            // Preserve locale/call_to_actions structure rather than assuming flat questions.
+            lines.push("## Ice Breakers", "```json", JSON.stringify(profile.ice_breakers, null, 2), "```", "");
           }
-          lines.push("");
         }
 
         if (lines.length === 2) {

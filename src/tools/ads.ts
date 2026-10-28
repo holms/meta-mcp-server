@@ -559,7 +559,7 @@ Returns the new ad set ID.`,
             ])
             .describe("Optimization goal"),
           targeting: z
-            .record(z.unknown())
+            .record(z.string(), z.unknown())
             .describe("Targeting spec object (geo_locations, age, interests, etc.)"),
           start_time: z.string().optional(),
           end_time: z.string().optional(),
@@ -1401,7 +1401,7 @@ Returns: Estimated daily reach and audience size.`,
       inputSchema: z
         .object({
           ad_account_id: z.string(),
-          targeting_spec: z.record(z.unknown()).describe("Targeting spec object"),
+          targeting_spec: z.record(z.string(), z.unknown()).describe("Targeting spec object"),
           optimization_goal: z.string().optional(),
           response_format: ResponseFormatSchema,
         })
@@ -1616,14 +1616,14 @@ Args:
   - pixel_id (string): Pixel ID
   - start_time (string, optional): ISO date for start of range
   - end_time (string, optional): ISO date for end of range
-  - aggregation (string, optional): "event" (default) or "device"
+  - aggregation (string, optional): "event" (default), "device_os", "device_type", or another supported schema value
   - event (string, optional): Filter to specific event like "Purchase"`,
       inputSchema: z
         .object({
           pixel_id: z.string(),
           start_time: z.string().optional(),
           end_time: z.string().optional(),
-          aggregation: z.enum(["event", "device"]).default("event"),
+          aggregation: z.enum(["browser_type", "custom_data_field", "device_os", "device_type", "event", "event_detection_method", "event_processing_results", "event_source", "event_total_counts", "event_value_count", "had_pii", "host", "match_keys", "pixel_fire", "url", "url_by_rule"]).default("event"),
           event: z.string().optional(),
           response_format: ResponseFormatSchema,
         })
@@ -1925,13 +1925,13 @@ Args:
     async ({ ad_account_id, limit, after, response_format }) => {
       try {
         const params: Record<string, unknown> = {
-          fields: "id,name,targeting,approximate_count",
+          fields: "id,name,targeting,approximate_count_lower_bound,approximate_count_upper_bound",
           limit,
         };
         if (after) params.after = after;
 
         const data = await client.get<MetaPaginatedResponse<{
-          id: string; name: string; approximate_count?: number; targeting?: Record<string, unknown>;
+          id: string; name: string; approximate_count_lower_bound?: number; approximate_count_upper_bound?: number; targeting?: Record<string, unknown>;
         }>>(`/${ad_account_id}/saved_audiences`, params);
 
         if (!data.data?.length) {
@@ -1944,7 +1944,7 @@ Args:
 
         const lines = [`# Saved Audiences (${data.data.length})`, ""];
         for (const aud of data.data) {
-          lines.push(`- **${aud.name}** (\`${aud.id}\`)${aud.approximate_count ? ` — ~${formatNumber(aud.approximate_count)} people` : ""}`);
+          lines.push(`- **${aud.name}** (\`${aud.id}\`)${aud.approximate_count_lower_bound != null && aud.approximate_count_upper_bound != null ? ` — ~${formatNumber(aud.approximate_count_lower_bound)}–${formatNumber(aud.approximate_count_upper_bound)} people` : ""}`);
         }
         return { content: [{ type: "text", text: lines.join("\n") }] };
       } catch (error) {
@@ -2422,9 +2422,9 @@ Args:
         .object({
           ad_account_id: z.string(),
           name: z.string().min(1),
-          evaluation_spec: z.record(z.unknown()),
-          execution_spec: z.record(z.unknown()),
-          schedule_spec: z.record(z.unknown()).optional(),
+          evaluation_spec: z.record(z.string(), z.unknown()),
+          execution_spec: z.record(z.string(), z.unknown()),
+          schedule_spec: z.record(z.string(), z.unknown()).optional(),
           response_format: ResponseFormatSchema,
         })
         .strict(),
@@ -2590,7 +2590,7 @@ Args:
         .object({
           ad_account_id: z.string(),
           name: z.string().min(1),
-          targeting: z.record(z.unknown()).describe("Targeting specification"),
+          targeting: z.record(z.string(), z.unknown()).describe("Targeting specification"),
           response_format: ResponseFormatSchema,
         })
         .strict(),
@@ -3284,7 +3284,7 @@ Returns: Number of events received.`,
           event_set_id: z.string().describe("Offline event set ID"),
           event_name: z.string().describe("Event name (e.g., 'Purchase')"),
           event_time: z.number().describe("Unix timestamp"),
-          user_data: z.record(z.string()).describe("Customer match data (hashed PII)"),
+          user_data: z.record(z.string(), z.string()).describe("Customer match data (hashed PII)"),
           custom_data: z.object({
             currency: z.string().optional(),
             value: z.number().optional(),
