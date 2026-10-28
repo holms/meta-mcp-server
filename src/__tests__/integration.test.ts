@@ -4,8 +4,9 @@ import { join } from "path";
 
 function sendMcpRequest(request: object): Promise<object> {
   return new Promise((resolve, reject) => {
-    const proc = spawn("node", [join(process.cwd(), "dist/index.js")], {
-      env: { ...process.env, META_ACCESS_TOKEN: "", THREADS_ACCESS_TOKEN: "" },
+    const proc = spawn(process.execPath, [join(process.cwd(), "dist/index.js")], {
+      // Keep the real server token-free even when the host can use 1Password.
+      env: { ...process.env, PATH: "", META_ACCESS_TOKEN: "", THREADS_ACCESS_TOKEN: "", SENTRY_DSN: "" },
       stdio: ["pipe", "pipe", "pipe"],
     });
 

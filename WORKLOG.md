@@ -1,5 +1,11 @@
 # Worklog
 
+## 2026-10-28 - Isolate integration tests from live credentials
+
+The MCP integration harness now launches the current Node executable with an empty child PATH and blank Meta, Threads and Sentry settings. This prevents the server's 1Password fallback from resolving live tokens during tests, fixing [#8](https://github.com/oliverames/meta-mcp-server/issues/8) without adding a production setting.
+
+Verification used a harmless `op` canary that only recorded invocation and exited unsuccessfully. The same three entry-point tests passed before the fix with six canary invocations, then passed afterward with zero invocations on Node 26.12.1 and Node 20.20.2. No real credential lookup or Meta request was used.
+
 ## 2026-10-28 - Integrate the completed Page contributions
 
 **What changed**: Integrated the top-level Page comment contribution from PR #2 and the cover-photo upload flow from PR #5, retaining both contributors' original commits and the current security fixes. The server now registers 200 tools. The cover update sends the photo ID as the scalar `cover` parameter, with `offset_y` and `no_feed_story` at the top level, matching Meta's [v21 Page reference](https://developers.facebook.com/docs/graph-api/reference/v21.0/page/). URL input uploads an unpublished Page photo first. The tool no longer advertises idempotence because that upload creates a photo.
