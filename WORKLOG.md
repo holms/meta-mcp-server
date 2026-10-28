@@ -10,7 +10,7 @@
 
 **Left off at**: Source verification is complete. Package version remains 2.0.2; this integration does not itself establish a new npm release or an installed-server update. Earlier release and operational questions remain below.
 
-**Open questions**: NEW: [issue #9](https://github.com/oliverames/meta-mcp-server/issues/9) tracks GHSA-rmxm-3fg6-px4f in the transitive Hono adapter. Its compatible 2.1.5 patch clears the audit and passes the MCP entry-point checks on Node 20.20.2 and Node 26.12.1, but requires raising the current Node 18 minimum. That decision is pending; the tested candidate is retained outside the checkout and the existing lockfile remains on main.
+**Resolved this session**: [Issue #9](https://github.com/oliverames/meta-mcp-server/issues/9) tracks GHSA-rmxm-3fg6-px4f in the transitive Hono adapter. Oliver authorized security patches, so the compatible 2.1.5 adapter update is included and the declared minimum is now Node 20. The complete audit reports zero vulnerabilities, a clean locked install and build pass, and the MCP entry-point tests passed on Node 20.20.2 and Node 26.12.1. The README states the new minimum. Earlier package-publication and live Meta acceptance limits still apply.
 
 ---
 

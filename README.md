@@ -41,6 +41,8 @@ Every tool returns actionable error messages — not cryptic API codes. Token ex
 
 ## Quick Start
 
+Requires Node.js 20 or newer.
+
 ### Install with MCPB
 
 For Claude Desktop and other MCPB-compatible clients, download the local bundle from the [v2.0.2 release](https://github.com/oliverames/meta-mcp-server/releases/tag/v2.0.2):
