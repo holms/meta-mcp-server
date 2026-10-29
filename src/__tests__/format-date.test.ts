@@ -4,6 +4,10 @@ import { registerPageTools } from "../tools/pages.js";
 import { MetaApiClient } from "../services/api.js";
 import { formatDate } from "../services/utils.js";
 
+// formatDate renders in the local timezone; pin it so the date assertions
+// below don't flip to the previous day on hosts west of UTC-8.
+process.env.TZ = "UTC";
+
 type RegisteredTool = {
   name: string;
   callback: (args: Record<string, unknown>) => Promise<any>;
